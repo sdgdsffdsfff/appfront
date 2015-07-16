@@ -1,0 +1,4 @@
+#系统版本号,版本基础,版本负责人,组件名称,组件编号，源文件，目标文件，发布用户，权限位，MD5，操作类型，特征点，备注
+DELIVMGR_V1.33_P001,DELIVMGR_V1.33,ZHANGHAO,BIP,0390,bip\run\cfg\delivery_func.xml,/cffex/deploy/bip/run/cfg/delivery_func.xml,deploy,650,,copy,022805701,
+DELIVMGR_V1.33_P001,DELIVMGR_V1.33,ZHANGHAO,BIP,0390,/cffex/deploy/bip/run/cfg/delivery_func.xml,/cffex/trade/bip/bsu/delivery/cfg/delivery_func.xml,trade,640,,link,022805701,
+SETTMGRV1.21,SETTMGRV1.2,GUOYB,DATABASE,0440,database\bdb\currsettlement\t_margincombinationleg.sql,,oracle,650,,sqlplus,insert,
