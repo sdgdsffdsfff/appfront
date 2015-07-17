@@ -7,6 +7,7 @@ import shutil, zipfile, os
 import httplib, urllib
 import json
 import time
+import string
 from os import curdir, sep, path
 # File folder dir
 dir_path = 'D:\\IntPassion\\Documents\\workspace\\Deal_uploadfile\\Project\\test\\liph'
@@ -28,6 +29,7 @@ APPPATCH_FLAG_FCAT = 'FCAT00000125'
 APPPATCH_PUBDATE_FCAT = 'FCAT00000126'
 COMPPATCH_VERSION_FCAT = 'FCAT00000127'
 PATCHITEM_SEQ_FCAT = 'FCAT00000128'
+APPOWNCOMP_FCRT = 'FCRT00000018'
 
 
 ######################################################################################################
@@ -70,7 +72,7 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.end_headers()
-        self.wfile.write('<Html>上传开始。<br/><br/>');
+        self.wfile.write('<Html>上传开始。<br/><br/>')        
         self.wfile.write('客户端: %s<br/>' % str(self.client_address))
         #Set the deploy flag based on the checkbox
         deploy_flag = form['flag_todeploy'].value
@@ -164,13 +166,13 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                        patchset_name = comp_info.split(',')[0]
                                        appname = patchset_name.split('_')[0]
                                        comp_name=comp_info.split(',')[3]
-                                       self.wfile.write('Component name is %s <br/>' % comp_name)                                       
+                                       self.wfile.write('Application is %s and Component name is %s <br/>' % (appname,comp_name))                                       
                                        #Return the search result
-                                       url_ci = "/cirela?typename=APPCOMPSCOMP&targetname=" + comp_name + "&sourcename=" + appname
+                                       url_ci = "/cirela?type_fid=" + APPOWNCOMP_FCRT + "&targetname=" + comp_name + "&sourcename=" + appname
                                        conn.request(method = "GET",url = url_ci)
                                        data_ci = json.loads(conn.getresponse().read())
                                        self.wfile.write('Search result is %s <br/>' % len(data_ci))
-                                       if len(data_ci) <> 0: #测试完要改成==
+                                       if len(data_ci) == 0: #测试完要改成==
                                            self.wfile.write('Application %s \'s component %s does not exist <br/>' % (appname,comp_name))
                                            zfile.close()
                                            HttpConnectionClose(conn)
@@ -288,8 +290,8 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                    cirela_fid = conn.getresponse().read()
                                    self.wfile.write('----The CI RELATION return family_id is %s <br/>' % cirela_fid)
                                    #Insert the relation between the application component and the component patchset
-                                   #Get the family_id of the application component
-                                   url_ci = "/cirela?typename=APPCOMPSCOMP&targetname=" + comp_name + "&sourcename=" + appname
+                                   #Get the family_id of the application component                                   
+                                   url_ci = "/cirela?type_fid=" + APPOWNCOMP_FCRT + "&targetname=" + comp_name + "&sourcename=" + appname
                                    conn.request(method = "GET",url = url_ci)
                                    data_ci = json.loads(conn.getresponse().read())
                                    url_cirela = "/cirela?source_fid=" + data_ci[0]['TARGET_FID'] + "&target_fid=" + ci_comp_fid + "&relation=REFERENCE"
@@ -300,9 +302,10 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                #Insert the patch_item ci , the component item ci; then build the relation between the application component and the component patchset, the relation between the application component and the component item
                                item_uri = comp_info.split(',')[5]
                                item_seqid = item_seqid + 1
-                               if  item_uri.index('\\')  >=0:
+                               if  item_uri.find('\\')  >=0:
+                                   self.wfile.write('*****The position of \\ is %s <br/>' % item_uri.find('\\'))
                                    patchitem = item_uri.split('\\')[len(item_uri.split('\\'))-1]
-                               elif item_uri.index('/')  >=0:  
+                               elif item_uri.find('/')  >=0:  
                                    patchitem = item_uri.split('/')[len(item_uri.split('/'))-1]
                                else:
                                    patchitem = item_uri
@@ -311,7 +314,7 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                conn.request(method = "POST", url = url_ci)
                                ci_patchitem_fid = conn.getresponse().read()
                                self.wfile.write('----The CI return family_id is %s <br/>' % ci_patchitem_fid)
-                               url_ciattr = "/ciattr?ci_fid=" + ci_patchitem_fid + "&ci_attrtype_fid=" + PATCHITEM_SEQ_FCAT + "&value=" +item_seqid
+                               url_ciattr = "/ciattr?ci_fid=" + ci_patchitem_fid + "&ci_attrtype_fid=" + PATCHITEM_SEQ_FCAT + "&value=" + str(item_seqid)
                                conn.request(method = "POST",url = url_ciattr)
                                ciattr_fid = conn.getresponse().read()
                                self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)                        
