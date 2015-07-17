@@ -223,11 +223,11 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                    self.wfile.write('----The CI return family_id is %s <br/>' % ci_app_fid)
                                    appname = patchset_name.split('_')[0]
                                    #Return the family_id of the application
-                                   url_ci = "/ci?name=" + appname + "&citype_name=APPLICATION"
+                                   url_ci = "/ci?name=" + appname + "&type_fid=" + APP_FCIT
                                    conn.request(method = "GET",url = url_ci)
                                    data_ci = json.loads(conn.getresponse().read())
                                    self.wfile.write('----The APP CI return family_id is %s <br/>' % data_ci[0]['FAMILY_ID'])
-                                   #Insert the relation
+                                   #Insert the relation between the application and the application patchset
                                    url_ciattr = "/cirela?source_fid=" + data_ci[0]['FAMILY_ID'] + "&target_fid=" + ci_app_fid + "&relation=COMPOSITION"
                                    conn.request(method = "POST",url = url_ciattr)
                                    cirela_fid = conn.getresponse().read()
@@ -282,9 +282,18 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                    conn.request(method = "POST",url = url_ciattr)
                                    ciattr_fid = conn.getresponse().read()
                                    self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
-                                   #Insert the relation
-                                   url_ciattr = "/cirela?source_fid=" + ci_app_fid + "&target_fid=" + ciattr_fid + "&relation=COMPOSITION"
-                                   conn.request(method = "POST",url = url_ciattr)
+                                   #Insert the relation between the application patchset and the component patchset
+                                   url_cirela = "/cirela?source_fid=" + ci_app_fid + "&target_fid=" + ci_comp_fid + "&relation=COMPOSITION"
+                                   conn.request(method = "POST",url = url_cirela)
+                                   cirela_fid = conn.getresponse().read()
+                                   self.wfile.write('----The CI RELATION return family_id is %s <br/>' % cirela_fid)
+                                   #Insert the relation between the application component and the component patchset
+                                   #Get the family_id of the application component
+                                   url_ci = "/cirela?typename=APPCOMPSCOMP&targetname=" + comp_name + "&sourcename=" + appname
+                                   conn.request(method = "GET",url = url_ci)
+                                   data_ci = json.loads(conn.getresponse().read())
+                                   url_cirela = "/cirela?source_fid=" + data_ci[0]['TARGET_FID'] + "&target_fid=" + ci_comp_fid + "&relation=REFERENCE"
+                                   conn.request(method = "POST",url = url_cirela)
                                    cirela_fid = conn.getresponse().read()
                                    self.wfile.write('----The CI RELATION return family_id is %s <br/>' % cirela_fid)
                                
@@ -298,7 +307,24 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                else:
                                    patchitem = item_uri
                                #Insert the patch_item ci and its attribute
-                                                       
+                               url_ci = "/ci?ci_type_fid=" + PATCHITEM_FCIT + "&name=" + patchitem
+                               conn.request(method = "POST", url = url_ci)
+                               ci_patchitem_fid = conn.getresponse().read()
+                               self.wfile.write('----The CI return family_id is %s <br/>' % ci_patchitem_fid)
+                               url_ciattr = "/ciattr?ci_fid=" + ci_patchitem_fid + "&ci_attrtype_fid=" + PATCHITEM_SEQ_FCAT + "&value=" +item_seqid
+                               conn.request(method = "POST",url = url_ciattr)
+                               ciattr_fid = conn.getresponse().read()
+                               self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)                        
+                               #Build the relation between the component patchset and the patch_item
+                               url_cirela = "/cirela?source_fid=" + ci_comp_fid + "&target_fid=" + ci_patchitem_fid + "&relation=COMPOSITION"
+                               conn.request(method = "POST",url = url_cirela)
+                               cirela_fid = conn.getresponse().read()
+                               self.wfile.write('----The CI RELATION return family_id is %s <br/>' % cirela_fid) 
+                               
+                               #Insert the component item ci and its attribute
+                               
+                               #Build the relation between the application component and the component item, the relation between the patch_item and the component item
+                               
                                    
                            fcfg.close()                                
 
