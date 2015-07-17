@@ -29,8 +29,15 @@ APPPATCH_FLAG_FCAT = 'FCAT00000125'
 APPPATCH_PUBDATE_FCAT = 'FCAT00000126'
 COMPPATCH_VERSION_FCAT = 'FCAT00000127'
 PATCHITEM_SEQ_FCAT = 'FCAT00000128'
+COMPITEM_OWNER_FCAT = 'FCAT00000129'
+COMPITEM_PERMIS_FCAT = 'FCAT00000130'
+COMPITEM_URI_FCAT = 'FCAT00000131'
+COMPITEM_TARGETDIR_FCAT = 'FCAT00000132'
+COMPITEM_MD5_FCAT = 'FCAT00000133'
+COMPITEM_FETURE_FCAT = 'FCAT00000134'
+COMPITEM_VERSION_FCAT = 'FCAT00000135'
+COMPITEM_DEPLOY_FCAT = 'FCAT00000136'
 APPOWNCOMP_FCRT = 'FCRT00000018'
-
 
 ######################################################################################################
 uploadhtml = '''<html><body>
@@ -302,8 +309,8 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                #Insert the patch_item ci , the component item ci; then build the relation between the application component and the component patchset, the relation between the application component and the component item
                                item_uri = comp_info.split(',')[5]
                                item_seqid = item_seqid + 1
-                               if  item_uri.find('\\')  >=0:
-                                   self.wfile.write('*****The position of \\ is %s <br/>' % item_uri.find('\\'))
+                               #Get the item name
+                               if  item_uri.find('\\')  >=0:                                   
                                    patchitem = item_uri.split('\\')[len(item_uri.split('\\'))-1]
                                elif item_uri.find('/')  >=0:  
                                    patchitem = item_uri.split('/')[len(item_uri.split('/'))-1]
@@ -325,9 +332,67 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                self.wfile.write('----The CI RELATION return family_id is %s <br/>' % cirela_fid) 
                                
                                #Insert the component item ci and its attribute
+                               url_ci = "/ci?ci_type_fid=" + COMPITEM_FCIT + "&name=" + patchitem
+                               conn.request(method = "POST", url = url_ci)
+                               ci_compitem_fid = conn.getresponse().read()
+                               self.wfile.write('----The CI return family_id is %s <br/>' % ci_compitem_fid)
                                
+                               #Set item's attributes
+                               item_target = comp_info.split(',')[6]
+                               item_owner = comp_info.split(',')[7]
+                               item_permission = comp_info.split(',')[8]
+                               item_md5 = comp_info.split(',')[9]
+                               item_method = comp_info.split(',')[10]
+                               item_feture = comp_info.split(',')[11]
+                               item_version = patchset_name[(len(appname)+1):]
+                               #Insert item's attribute: owner
+                               url_ciattr = "/ciattr?ci_fid=" + ci_compitem_fid + "&ci_attrtype_fid=" + COMPITEM_OWNER_FCAT + "&value=" + item_owner
+                               conn.request(method = "POST",url = url_ciattr)
+                               ciattr_fid = conn.getresponse().read()
+                               self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
+                               #Insert item's attribute: permission
+                               url_ciattr = "/ciattr?ci_fid=" + ci_compitem_fid + "&ci_attrtype_fid=" + COMPITEM_PERMIS_FCAT + "&value=" + item_permission
+                               conn.request(method = "POST",url = url_ciattr)
+                               ciattr_fid = conn.getresponse().read()
+                               self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
+                               #Insert item's attribute: URI
+                               url_ciattr = "/ciattr?ci_fid=" + ci_compitem_fid + "&ci_attrtype_fid=" + COMPITEM_URI_FCAT + "&value=" + item_uri
+                               conn.request(method = "POST",url = url_ciattr)
+                               ciattr_fid = conn.getresponse().read()
+                               self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
+                               #Insert item's attribute: target_dir
+                               url_ciattr = "/ciattr?ci_fid=" + ci_compitem_fid + "&ci_attrtype_fid=" + COMPITEM_TARGETDIR_FCAT + "&value=" + item_target
+                               conn.request(method = "POST",url = url_ciattr)
+                               ciattr_fid = conn.getresponse().read()
+                               self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
+                               #Insert item's attribute: MD5
+                               if item_md5 <> "" :
+                                   url_ciattr = "/ciattr?ci_fid=" + ci_compitem_fid + "&ci_attrtype_fid=" + COMPITEM_MD5_FCAT + "&value=" + item_md5
+                                   conn.request(method = "POST",url = url_ciattr)
+                                   ciattr_fid = conn.getresponse().read()
+                                   self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
+                               #Insert item's attribute: feture point
+                               if item_feture <> "" :
+                                   url_ciattr = "/ciattr?ci_fid=" + ci_compitem_fid + "&ci_attrtype_fid=" + COMPITEM_FETURE_FCAT + "&value=" + item_feture
+                                   conn.request(method = "POST",url = url_ciattr)
+                                   ciattr_fid = conn.getresponse().read()
+                                   self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
+                               #Insert item's attribute: version
+                               url_ciattr = "/ciattr?ci_fid=" + ci_compitem_fid + "&ci_attrtype_fid=" + COMPITEM_VERSION_FCAT + "&value=" + item_version
+                               conn.request(method = "POST",url = url_ciattr)
+                               ciattr_fid = conn.getresponse().read()
+                               self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
+                               #Insert item's attribute: deploy method
+                               url_ciattr = "/ciattr?ci_fid=" + ci_compitem_fid + "&ci_attrtype_fid=" + COMPITEM_DEPLOY_FCAT + "&value=" + item_method
+                               conn.request(method = "POST",url = url_ciattr)
+                               ciattr_fid = conn.getresponse().read()
+                               self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
+
                                #Build the relation between the application component and the component item, the relation between the patch_item and the component item
-                               
+                               url_cirela = "/cirela?source_fid=" + ci_patchitem_fid + "&target_fid=" + ci_compitem_fid + "&relation=COMPOSITION"
+                               conn.request(method = "POST",url = url_cirela)
+                               cirela_fid = conn.getresponse().read()
+                               self.wfile.write('----The CI RELATION return family_id is %s <br/>' % cirela_fid) 
                                    
                            fcfg.close()                                
 
