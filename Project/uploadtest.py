@@ -10,6 +10,26 @@ from os import curdir, sep, path
 # File folder dir
 dir_path = 'D:\\IntPassion\\Documents\\workspace\\Deal_uploadfile\\Project\\test\\liph'
 dir_cfgfile = 'deploy_cfg.lst'
+#Define the fixed family_ids in CMDB
+ENVIR_FCIT = 'FCIT00000017'
+APP_FCIT = 'FCIT00000018'
+APPPATCH_FCIT = 'FCIT00000019'
+COMP_FCIT = 'FCIT00000020'
+COMPPATCH_FCIT = 'FCIT00000021'
+COMPITEM_FCIT = 'FCIT00000022'
+COMPDEPLOY_FCIT = 'FCIT00000023'
+COMPCONFIG_FCIT = 'FCIT00000024'
+PATCHITEM_FCIT = 'FCIT00000025'
+APPPATCH_VERSION_FCAT = 'FCAT00000122'
+APPPATCH_BASE_FCAT = 'FCAT00000123'
+APPPATCH_RESP_FCAT = 'FCAT00000124'
+APPPATCH_FLAG_FCAT = 'FCAT00000125'
+APPPATCH_PUBDATE_FCAT = 'FCAT00000126'
+COMPPATCH_VERSION_FCAT = 'FCAT00000127'
+PATCHITEM_SEQ_FCAT = 'FCAT00000128'
+
+
+######################################################################################################
 uploadhtml = '''<html><body>
 <p>批量文件上传</p>
 <form enctype="multipart/form-data" action="/" method="post">
@@ -68,60 +88,94 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                    # Judge whether the application exists or not
                    zfile = zipfile.ZipFile(field_item.filename, 'r')
                    for file in zfile.namelist():
+                       self.wfile.write('#####################Current file is %s################### <br/>' % (file))
                        #Judge whether the file is a dir or not (Application name is in the first dir
                        if file.endswith("/") and len(file.split('/'))==2:
-                           self.wfile.write('Dir is %s <br/>' % file)
                            # Judge whether the application exists or not
                            appname = file.rstrip('/')
                            self.wfile.write('Application name is %s <br/>' % appname)
                            #Return the search result
-                           url_ci = "/ci?name=" + appname + "&citype_name=APPLICATION"
+                           url_ci = "/ci?name=" + appname + "&type_fid=" + APP_FCIT
                            conn.request(method = "GET",url = url_ci)
                            data_ci = json.loads(conn.getresponse().read())
                            self.wfile.write('Search result is %s <br/>' % len(data_ci))
-                           if len(data_ci)<>0: #测试完要改成=
+                           if len(data_ci)==0: #测试完要改成==
                                self.wfile.write('Application %s does not exist <br/>' % appname)
                                zfile.close()
                                HttpConnectionClose(conn)
                                self.wfile.write('</html>')
                                return 
                        else:                           
-                           appname = path.split(file)[0].rstrip('/')
-                           cfgfile_name = path.split(file)[1]
-                           self.wfile.write('Appname is %s and config name is %s <br/>' % (appname,cfgfile_name))
-                           #self.wfile.write(' %s <br/>' % cmp(cfgfile_name, 'deploy_config.lst'))
-                           if cmp(cfgfile_name, 'deploy_config.lst') == -1:
+                           #====================================================
+                           # appname = path.split(file)[0].rstrip('/')
+                           # cfgfile_name = path.split(file)[1]
+                           # self.wfile.write('Appname is %s and config name is %s <br/>' % (appname,cfgfile_name))
+                           #====================================================                           
+                           #Through the deploy config file, judge whether the basis patchset and component exist or not
+                           if file == dir_cfgfile:
                                file_open = zfile.open(file,'r')
-                               #First line is application note
-                               file_open.readline()
-                               #Second line is application's attribute
-                               file_open.readline()
-                               ##Third line is component note
-                               file_open.readline()
-                               #Judge whether the application's component exists or not
+                               #First line is note
+                               file_open.readline()                              
+                               #Judge whether the patchset exists or not, whether the application's basis version and component exist or not
+                               patchset_name = 0
+                               basis_version = 0
                                comp_name = 0
                                for comp_info in file_open:
-                                   #Since every line includes a component , we should exclude the repeated one.
-                                   if comp_info.split(',')[0] <> comp_name:
-                                       self.wfile.write('Component name is %s <br/>' % comp_info.split(',')[0])
-                                       comp_name=comp_info.split(',')[0]
+                                   #Since every line includes a patchset basis , we should exclude the repeated one.
+                                   if comp_info.split(',')[0] <> patchset_name:
+                                       patchset_name = comp_info.split(',')[0]
+                                       self.wfile.write('The Patchset to deploy is %s <br/>' % (patchset_name))
                                        #Return the search result
-                                       url_ci = "/cirela?typename=APPCOMPSCOMP&targetname=" + comp_info.split(',')[0] + "&sourcename=" + appname
+                                       url_ci = "/ci?type_fid=" + APPPATCH_FCIT + "&name=" + patchset_name
+                                       conn.request(method = "GET",url = url_ci)
+                                       data_ci = json.loads(conn.getresponse().read())
+                                       self.wfile.write('Search result is %s <br/>' % len(data_ci))
+                                       if len(data_ci) <>0: #测试完要改成<>0
+                                           self.wfile.write('Patchset %s has existed <br/>' % (patchset_name))
+                                           zfile.close()
+                                           HttpConnectionClose(conn)
+                                           self.wfile.write('</html>')
+                                           return                           
+                                   
+                                   #Since every line includes a patchset basis , we should exclude the repeated one.
+                                   if comp_info.split(',')[1] <> "" and comp_info.split(',')[1] <> basis_version:
+                                       basis_version = comp_info.split(',')[1]
+                                       self.wfile.write('The basis of Patchset %s is %s <br/>' % (comp_info.split(',')[0],basis_version)) 
+                                       #Return the search result
+                                       url_ci = "/ci?type_fid=" + APPPATCH_FCIT + "&name=" + basis_version
                                        conn.request(method = "GET",url = url_ci)
                                        data_ci = json.loads(conn.getresponse().read())
                                        self.wfile.write('Search result is %s <br/>' % len(data_ci))
                                        if len(data_ci) <> 0: #测试完要改成==
-                                           self.wfile.write('Application %s \'s component %s does not exist <br/>' % (appname,comp_info.split(',')[0]))
+                                           self.wfile.write('Patchset basis %s does not exist <br/>' % (basis_version))
+                                           zfile.close()
+                                           HttpConnectionClose(conn)
+                                           self.wfile.write('</html>')
+                                           return                           
+                                   
+                                   #Since every line includes a component , we should exclude the repeated one.
+                                   if comp_info.split(',')[3] <> comp_name:
+                                       patchset_name = comp_info.split(',')[0]
+                                       appname = patchset_name.split('_')[0]
+                                       comp_name=comp_info.split(',')[3]
+                                       self.wfile.write('Component name is %s <br/>' % comp_name)                                       
+                                       #Return the search result
+                                       url_ci = "/cirela?typename=APPCOMPSCOMP&targetname=" + comp_name + "&sourcename=" + appname
+                                       conn.request(method = "GET",url = url_ci)
+                                       data_ci = json.loads(conn.getresponse().read())
+                                       self.wfile.write('Search result is %s <br/>' % len(data_ci))
+                                       if len(data_ci) <> 0: #测试完要改成==
+                                           self.wfile.write('Application %s \'s component %s does not exist <br/>' % (appname,comp_name))
                                            zfile.close()
                                            HttpConnectionClose(conn)
                                            self.wfile.write('</html>')
                                            return                                                                                 
-                   #zfile.close()
-                   #Prepare to upload zip file
-                   file_data = field_item.file.read()
-                   file_len = len(file_data)
-                   del file_data
+                   self.wfile.write('--------------------------------Judge END----------------------------------<br/>')
                    #============================================================
+                   # #Prepare to upload zip file
+                   # file_data = field_item.file.read()
+                   # file_len = len(file_data)
+                   # del file_data
                    # shutil.copy(field_item.filename, des_fn)
                    # self.wfile.write('文件 <a href="%s">%s</a> 成功上传，尺寸为：%d bytes<br/>' % (field_item.filename, field_item.filename, file_len))
                    # # Decompress the upload file to the destination
@@ -131,29 +185,94 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                    #============================================================
                    # Based on the deploy_cfg.lst of every application , execute sql command 
                    for file in sorted(zfile.namelist(),reverse=True):
-                       #Judge whether the file is a dir or not
-                       self.wfile.write('file %s <br/>' % file)
-                       zfile.extract(file,dir_path+sep)
-                       #Just decompress  one application patchset for one time. Each tag is for a single patchset. 
-                       if file.endswith("/") and len(file.split('/'))==2:
-                           self.wfile.write('Dir is %s <br/>' % file)                                                                                                         
-                           #zfile.extract(file,dir_path+sep)                           
-                           # Get the config file
-                           cfgfile = dir_path + sep + file + dir_cfgfile
-                           fcfg = open(cfgfile,'r')
-                           #First line is note
+                       if file <> dir_cfgfile:
+                           #Judge whether the file is a dir or not                                         
+                           self.wfile.write('file %s <br/>' % file)                                        
+                           zfile.extract(file,dir_path+sep)                                                
+                           #Just decompress  one application patchset for one time. Each tag is for a singl
+                           if file.endswith("/") and len(file.split('/'))==2:                              
+                               self.wfile.write('Dir is %s <br/>' % file)                                  
+                               #zfile.extract(file,dir_path+sep)                                                                                                                                         
+                               self.wfile.write('!!!!The app patchset\'s tag can be put here !!!!! <br/>') 
+                       else:
+                           # Get the config file                                                       
+                           fcfg = open(file,'r')                                                    
+                           #First line is note                                                         
                            fcfg.readline()
-                           #Second line is application's attribute
-                           attr_lines = fcfg.readline().rstrip('\n')
-                           for attr in attr_lines.split(','):
-                               self.wfile.write('Attribute are %s : %s <br/>' % (attr_lines,attr))
-                           #Third line is note
-                           fcfg.readline()
-                           #Remain is the info of components
-                           for cfgline in fcfg:
-                               self.wfile.write(' %s <br/>' % cfgline)
-                           fcfg.close()
-                           self.wfile.write('!!!!The app patchset\'s tag can be put here !!!!! <br/>')
+                           #Add the application patchset / application attribute / component / component attribute
+                           patchset_name = 0
+                           basis_version = 0
+                           comp_name = 0
+                           for comp_info in fcfg:
+                               #Since every line includes an application and its patchset basis , we should exclude the repeated one.
+                               #Insert new application patchset ci, then build the relation between the application and the applicaiton patchset
+                               #Insert new patch_base ci_attribute
+                               if comp_info.split(',')[0] <> patchset_name:
+                                   patchset_name = comp_info.split(',')[0]
+                                   self.wfile.write('The Patchset to deploy is %s <br/>' % (patchset_name))
+                                   #Insert the patchset info
+                                   url_ci = "/ci?ci_type_fid=" + APPPATCH_FCIT + "&name=" + patchset_name
+                                   conn.request(method = "POST", url = url_ci)
+                                   ci_app_fid = conn.getresponse().read()
+                                   self.wfile.write('----The CI return family_id is %s <br/>' % ci_app_fid)
+                                   appname = patchset_name.split('_')[0]
+                                   #Return the family_id of the application
+                                   url_ci = "/ci?name=" + appname + "&citype_name=APPLICATION"
+                                   conn.request(method = "GET",url = url_ci)
+                                   data_ci = json.loads(conn.getresponse().read())
+                                   self.wfile.write('----The APP CI return family_id is %s <br/>' % data_ci[0]['FAMILY_ID'])
+                                   #Insert the relation
+                                   url_ciattr = "/cirela?source_fid=" + data_ci[0]['FAMILY_ID'] + "&target_fid=" + ci_app_fid + "&relation=COMPOSITION"
+                                   conn.request(method = "POST",url = url_ciattr)
+                                   cirela_fid = conn.getresponse().read()
+                                   self.wfile.write('----The CI RELATION return family_id is %s <br/>' % cirela_fid)
+                                   
+                                   #Insert attribute : version
+                                   url_ciattr = "/ciattr?ci_fid=" + ci_app_fid + "&ci_attrtype_fid=" + APPPATCH_VERSION_FCAT + "&value=" + patchset_name[(len(appname)+1):]
+                                   conn.request(method = "POST",url = url_ciattr)
+                                   ciattr_fid = conn.getresponse().read()
+                                   self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
+                                   
+                                   basis_version = comp_info.split(',')[1]
+                                   patch_resp = comp_info.split(',')[2]
+                                   self.wfile.write('The basis of Patchset %s is %s, and %s is responsible for it. <br/>' % (patchset_name,basis_version,patch_resp)) 
+                                   #Insert the attribute basis_version
+                                   url_ciattr = "/ciattr?ci_fid=" + ci_app_fid + "&ci_attrtype_fid=" + APPPATCH_BASE_FCAT + "&value=" + basis_version
+                                   conn.request(method = "POST",url = url_ciattr)
+                                   ciattr_fid = conn.getresponse().read()
+                                   self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
+                                   
+                                   #Insert the attribute patchset_responsible
+                                   url_ciattr = "/ciattr?ci_fid=" + ci_app_fid + "&ci_attrtype_fid=" + APPPATCH_RESP_FCAT + "&value=" + patch_resp
+                                   conn.request(method = "POST",url = url_ciattr)
+                                   ciattr_fid = conn.getresponse().read()
+                                   self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
+                                   
+                               #Insert new component patchset ci, then build the relation between the application patchset and the component patchset
+                               if comp_info.split(',')[3] <> comp_name:
+                                   comp_name = comp_info.split(',')[3] 
+                                   appname = patchset_name.split('_')[0]                                                                   
+                                   self.wfile.write('The component of application %s is %s. <br/>' % (appname,comp_name))
+                                   #Insert the component
+                                   url_ci = "/ci?ci_type_fid=" + COMPPATCH_FCIT + "&name=" + patchset_name
+                                   conn.request(method = "POST", url = url_ci)
+                                   ci_comp_fid = conn.getresponse().read()
+                                   self.wfile.write('----The CI return family_id is %s <br/>' % ci_comp_fid)
+                                   #Insert the attribute : component version
+                                   url_ciattr = "/ciattr?ci_fid=" + ci_comp_fid + "&ci_attrtype_fid=" + COMPPATCH_VERSION_FCAT + "&value=" + patchset_name[(len(appname)+1):]
+                                   conn.request(method = "POST",url = url_ciattr)
+                                   ciattr_fid = conn.getresponse().read()
+                                   self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
+                                   #Insert the relation
+                                   url_ciattr = "/cirela?source_fid=" + ci_app_fid + "&target_fid=" + ciattr_fid + "&relation=COMPOSITION"
+                                   conn.request(method = "POST",url = url_ciattr)
+                                   cirela_fid = conn.getresponse().read()
+                                   self.wfile.write('----The CI RELATION return family_id is %s <br/>' % cirela_fid)
+                               #Insert the patch_item ci , the component item ci; then build the relation between the application component and the component patchset, the relation between the application component and the component item
+                                                                  
+                                   
+                           fcfg.close()                                
+
                    zfile.close()
         HttpConnectionClose(conn)
         self.wfile.write('</html>')
