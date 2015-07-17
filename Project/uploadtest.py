@@ -248,6 +248,9 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                    ciattr_fid = conn.getresponse().read()
                                    self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
                                    
+                                   #Insert the attribute: flag_todeploy
+                                   
+                                   
                                #Insert new component patchset ci, then build the relation between the application patchset and the component patchset
                                if comp_info.split(',')[3] <> comp_name:
                                    comp_name = comp_info.split(',')[3] 
