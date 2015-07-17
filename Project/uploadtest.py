@@ -6,6 +6,7 @@ import BaseHTTPServer, SocketServer, cgi
 import shutil, zipfile, os
 import httplib, urllib
 import json
+import time
 from os import curdir, sep, path
 # File folder dir
 dir_path = 'D:\\IntPassion\\Documents\\workspace\\Deal_uploadfile\\Project\\test\\liph'
@@ -38,6 +39,8 @@ uploadhtml = '''<html><body>
 <p>File: <input type="file" name="file3"></p>
 <p>File: <input type="file" name="file4"></p>
 <p>File: <input type="file" name="file5"></p>
+<label><input name="flag_todeploy" type="checkbox" value="0" />正式上线 </label>
+<label><input name="flag_todeploy" type="checkbox" value="1" />预上线 </label>
 <p><input type="submit" value="上传"></p>
 </form>
 </body></html>'''
@@ -69,6 +72,9 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write('<Html>上传开始。<br/><br/>');
         self.wfile.write('客户端: %s<br/>' % str(self.client_address))
+        #Set the deploy flag based on the checkbox
+        deploy_flag = form['flag_todeploy'].value
+        self.wfile.write('预上线标志: %s<br/>' % deploy_flag)
         conn  =  HttpConnectionInit()
         for field in form.keys():
             field_item = form[field]
@@ -249,10 +255,20 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                    self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
                                    
                                    #Insert the attribute: flag_todeploy
+                                   url_ciattr = "/ciattr?ci_fid=" + ci_app_fid + "&ci_attrtype_fid=" + APPPATCH_FLAG_FCAT + "&value=" + deploy_flag
+                                   conn.request(method = "POST",url = url_ciattr)
+                                   ciattr_fid = conn.getresponse().read()
+                                   self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
                                    
+                                   #Insert the attribute: patch_pub_date
+                                   url_ciattr = "/ciattr?ci_fid=" + ci_app_fid + "&ci_attrtype_fid=" + APPPATCH_PUBDATE_FCAT + "&value=" + time.strftime("%Y%m%d%H%M%S", time.localtime())
+                                   conn.request(method = "POST",url = url_ciattr)
+                                   ciattr_fid = conn.getresponse().read()
+                                   self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
                                    
                                #Insert new component patchset ci, then build the relation between the application patchset and the component patchset
                                if comp_info.split(',')[3] <> comp_name:
+                                   item_seqid = 0
                                    comp_name = comp_info.split(',')[3] 
                                    appname = patchset_name.split('_')[0]                                                                   
                                    self.wfile.write('The component of application %s is %s. <br/>' % (appname,comp_name))
@@ -271,8 +287,18 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                    conn.request(method = "POST",url = url_ciattr)
                                    cirela_fid = conn.getresponse().read()
                                    self.wfile.write('----The CI RELATION return family_id is %s <br/>' % cirela_fid)
+                               
                                #Insert the patch_item ci , the component item ci; then build the relation between the application component and the component patchset, the relation between the application component and the component item
-                                                                  
+                               item_uri = comp_info.split(',')[5]
+                               item_seqid = item_seqid + 1
+                               if  item_uri.index('\\')  >=0:
+                                   patchitem = item_uri.split('\\')[len(item_uri.split('\\'))-1]
+                               elif item_uri.index('/')  >=0:  
+                                   patchitem = item_uri.split('/')[len(item_uri.split('/'))-1]
+                               else:
+                                   patchitem = item_uri
+                               #Insert the patch_item ci and its attribute
+                                                       
                                    
                            fcfg.close()                                
 
