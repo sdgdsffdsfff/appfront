@@ -38,6 +38,7 @@ COMPITEM_FETURE_FCAT = 'FCAT00000134'
 COMPITEM_VERSION_FCAT = 'FCAT00000135'
 COMPITEM_DEPLOY_FCAT = 'FCAT00000136'
 APPOWNCOMP_FCRT = 'FCRT00000018'
+COMPHASITEM_FCRT = 'FCRT00000026'
 
 ######################################################################################################
 uploadhtml = '''<html><body>
@@ -301,7 +302,8 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                    url_ci = "/cirela?type_fid=" + APPOWNCOMP_FCRT + "&targetname=" + comp_name + "&sourcename=" + appname
                                    conn.request(method = "GET",url = url_ci)
                                    data_ci = json.loads(conn.getresponse().read())
-                                   url_cirela = "/cirela?source_fid=" + data_ci[0]['TARGET_FID'] + "&target_fid=" + ci_comp_fid + "&relation=REFERENCE"
+                                   component_fid = data_ci[0]['TARGET_FID']
+                                   url_cirela = "/cirela?source_fid=" + component_fid + "&target_fid=" + ci_comp_fid + "&relation=REFERENCE"
                                    conn.request(method = "POST",url = url_cirela)
                                    cirela_fid = conn.getresponse().read()
                                    self.wfile.write('----The CI RELATION return family_id is %s <br/>' % cirela_fid)
@@ -359,7 +361,7 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                url_ciattr = "/ciattr?ci_fid=" + ci_compitem_fid + "&ci_attrtype_fid=" + COMPITEM_URI_FCAT + "&value=" + item_uri
                                conn.request(method = "POST",url = url_ciattr)
                                ciattr_fid = conn.getresponse().read()
-                               self.wfile.write('----The CI ATTRIBUTE return family_id is %s <br/>' % ciattr_fid)
+                               self.wfile.write('----The CI ATTRIBUTE return family_id is %s %s <br/>' % (ciattr_fid,item_uri))
                                #Insert item's attribute: target_dir
                                url_ciattr = "/ciattr?ci_fid=" + ci_compitem_fid + "&ci_attrtype_fid=" + COMPITEM_TARGETDIR_FCAT + "&value=" + item_target
                                conn.request(method = "POST",url = url_ciattr)
@@ -393,7 +395,25 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                conn.request(method = "POST",url = url_cirela)
                                cirela_fid = conn.getresponse().read()
                                self.wfile.write('----The CI RELATION return family_id is %s <br/>' % cirela_fid) 
-                                   
+                               #Since the "application component" always refers to the latest component item, we should delete the older reference relationship firstly.
+                               url_ciattr = "/ciattr?type_fid=" + COMPITEM_TARGETDIR_FCAT + "&value=" + item_target
+                               conn.request(method = "GET",url = url_ciattr)
+                               data_ciattr = json.loads(conn.getresponse().read()) 
+                               for item_attr in data_ciattr:
+                                   url_cirela = "/cirela?source_fid=" + component_fid + "&target_fid=" + item_attr['CI_FID'] + "&type_fid=" + COMPHASITEM_FCRT
+                                   conn.request(method = "GET",url = url_cirela)
+                                   data_cirela = json.loads(conn.getresponse().read())
+                                   if len(data_cirela) <> 0:
+                                       url_cirela = "/cirela?fid=" + data_cirela['FAMILY_ID'] + "&i_change_log=nextversion" + item_version
+                                       conn.request(method = "DELETE",url = url_cirela)
+                                       cirela_del = conn.getresponse().read()
+                                       self.wfile.write('***Have deleted %s relations <br/>' % cirela_del) 
+                                #Build the new relation
+                               url_cirela = "/cirela?source_fid=" + component_fid + "&target_fid=" + ci_compitem_fid + "&relation=REFERENCE"
+                               conn.request(method = "POST",url = url_cirela)
+                               cirela_fid = conn.getresponse().read()
+                               self.wfile.write('----The CI RELATION return family_id is %s <br/>' % cirela_fid) 
+                                       
                            fcfg.close()                                
 
                    zfile.close()
